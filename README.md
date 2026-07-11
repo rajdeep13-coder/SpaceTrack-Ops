@@ -1,114 +1,96 @@
 # SpaceTrackOps
 
-Real-time satellite situational awareness platform — tracks ~17,000 satellites, detects close-approach events (conjunctions), and provides AI-powered risk analysis.
+SpaceTrackOps is a real-time satellite situational awareness platform that:
+- ingests CelesTrak TLE feeds,
+- propagates orbital positions with SGP4,
+- detects close approaches (conjunctions),
+- and provides optional AI-assisted risk insights.
 
-## Architecture
+## Requirements
 
+- Python 3.11+
+- Node.js 18+
+- npm
+
+## Repository Structure
+
+```text
+SpaceTrack-Ops/
+├── backend/     # FastAPI backend, ingestion, propagation, detection, AI layer
+├── frontend/    # Next.js dashboard with 3D globe UI
+├── docs/        # Detailed project documentation
+└── .env.example # Shared environment variable template
 ```
-┌──────────────────┐     HTTP/JSON     ┌──────────────────────────────┐
-│  Next.js 16      │ ◄──────────────── │  FastAPI Backend              │
-│  React 19        │                   │                              │
-│  3D Globe        │                   │  SGP4 Propagation            │
-│  (react-globe.gl)│                   │  KD-Tree Conjunction Detect  │
-│  Tailwind CSS 4  │                   │  OpenRouter AI Analysis      │
-└──────────────────┘                   │  SQLite (spacetrackops.db)   │
-                                       └──────────┬───────────────────┘
-                                                  │
-                                       ┌──────────▼───────────────────┐
-                                       │  CelesTrak (TLE Data Source) │
-                                       └──────────────────────────────┘
-```
-
-### Data Pipeline
-
-1. **Fetch** — Parallel download of TLE data from 9 CelesTrak groups (~17K satellites)
-2. **Store** — Dedup by NORAD ID, upsert into SQLite
-3. **Propagate** — SGP4 orbit propagation for all satellites (8 parallel workers)
-4. **Detect** — KD-tree pairwise search finds close approaches within 200 km threshold
-5. **Classify** — Risk levels: HIGH (<10 km), MEDIUM (<50 km), LOW (<200 km)
-6. **Analyze** — Optional AI risk summaries via OpenRouter API
-
-## Prerequisites
-
-- **Python 3.11+** with pip
-- **Node.js 18+** with npm
 
 ## Quick Start
 
-### Backend
+### 1) Configure environment
+
+From repository root:
+
+```bash
+cp .env.example .env
+```
+
+Update `.env` values as needed (especially `OPENROUTER_API_KEY` for AI endpoints).
+
+### 2) Run backend
 
 ```bash
 cd backend
-
-# Create virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install fastapi uvicorn[standard] sgp4 numpy scipy requests apscheduler python-dotenv
-
-# Configure (optional — AI features require an API key)
-cp .env.example .env
-# Edit .env with your OpenRouter API key
-
-# Start the server
+source venv/bin/activate   # Windows: venv\Scripts\activate
+pip install fastapi "uvicorn[standard]" sgp4 numpy scipy requests apscheduler python-dotenv
 uvicorn main:app --reload
 ```
 
-The backend runs at `http://127.0.0.1:8000`. On first startup, it automatically fetches satellite data from CelesTrak.
+Backend: `http://127.0.0.1:8000`
 
-### Frontend
+### 3) Run frontend
+
+In a second terminal:
 
 ```bash
 cd frontend
-
-# Install dependencies
 npm install
-
-# Configure API endpoint (optional, defaults to http://127.0.0.1:8000)
-cp .env.example .env.local
-
-# Start development server
 npm run dev
 ```
 
-Open `http://localhost:3000` to view the dashboard.
+Frontend: `http://localhost:3000`
 
-## API Reference
+If needed, create `frontend/.env.local` manually with:
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/` | Health check |
-| `GET` | `/status` | System stats (satellite/conjunction counts, scheduler) |
-| `POST` | `/fetch` | Trigger TLE fetch from CelesTrak |
-| `GET` | `/satellites/categories` | Category list with counts |
-| `GET` | `/satellites` | Paginated satellite list (`?search=&limit=&offset=&category=`) |
-| `GET` | `/satellites/{norad_id}` | Single satellite detail |
-| `GET` | `/position/{norad_id}` | Current position via SGP4 |
-| `GET` | `/orbit/{norad_id}` | Orbit track (`?hours=&step=`) |
-| `GET` | `/positions/all` | Batch positions for all satellites |
-| `POST` | `/detect` | Run conjunction detection (`?hours=&step=&threshold=`) |
-| `GET` | `/conjunctions` | Stored conjunction events (`?risk=&limit=`) |
-| `GET` | `/proximity` | Closest satellite pairs (real-time KD-tree) |
-| `POST` | `/ai/analyze-conjunction` | AI analysis of a conjunction |
-| `GET` | `/ai/summary` | AI summary of top risks |
+```bash
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
+```
 
-## Environment Variables
+## Key Features
 
-### Backend (`backend/.env`)
+- Parallel TLE ingestion from multiple CelesTrak groups
+- SQLite-backed satellite and conjunction storage
+- KD-tree optimized conjunction detection
+- Cached batch position and proximity APIs
+- Optional AI analysis and summaries via OpenRouter
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `OPENROUTER_API_KEY` | For AI features | — | OpenRouter API key |
-| `CORS_ORIGINS` | No | `*` | Comma-separated allowed origins |
-| `LOG_LEVEL` | No | `INFO` | Python logging level |
+## API Overview
 
-### Frontend (`frontend/.env.local`)
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/status` | Service and scheduler status |
+| POST | `/fetch` | Fetch/refresh satellite TLE data |
+| GET | `/satellites` | Paginated satellite list with filters |
+| GET | `/positions/all` | Current positions (cached) |
+| POST | `/detect` | Run conjunction detection |
+| GET | `/conjunctions` | Retrieve stored conjunction events |
+| GET | `/proximity` | Nearest current satellite pairs |
+| POST | `/ai/analyze-conjunction` | AI analysis for a single event |
+| GET | `/ai/summary` | AI summary for top events |
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `NEXT_PUBLIC_API_URL` | No | `http://127.0.0.1:8000` | Backend API URL |
+For the full reference, see:
+- `/home/runner/work/SpaceTrack-Ops/SpaceTrack-Ops/docs/API.md`
+- `/home/runner/work/SpaceTrack-Ops/SpaceTrack-Ops/docs/ARCHITECTURE.md`
+- `/home/runner/work/SpaceTrack-Ops/SpaceTrack-Ops/docs/SETUP.md`
 
 ## License
 
-Private — all rights reserved.
+Private repository — all rights reserved.
