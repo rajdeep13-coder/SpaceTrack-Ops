@@ -6,6 +6,10 @@ SpaceTrackOps is a real-time satellite situational awareness platform that:
 - detects close approaches (conjunctions),
 - and provides optional AI-assisted risk insights.
 
+## 🏆 Recognition
+SpaceTrack-Ops was featured by the [**IIMCIP TIC**](https://www.linkedin.com/company/iimcip-tic/) on their official LinkedIn channel for its approach to identifying close-approach satellite events. 
+[Check out the feature here](https://www.linkedin.com/posts/buildclub-studentprojects-ugcPost-7483758081714216960-oN8D/?utm_source=social_share_send&utm_medium=member_desktop_web&rcm=ACoAAE7VVA8BiXaZ5RDr0NHwoEiHHa9e4BaejXM).
+
 ## Requirements
 
 - Python 3.11+
